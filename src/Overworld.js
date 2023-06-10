@@ -1,65 +1,59 @@
-class Overworld extends Phaser.Scene{
-    constructor(){
-        super({key:"overworldScene"});
-        this.VEL=100
-    }
-    preload(){
-        this.load.path='./assets/';
-        this.load.spritesheet('slime','slime.png',{
-            frameWidth: 16,
-            frameHeight:16
-        });
-        this.load.image('tilesetImage','tileset.png');
-        this.load.tilemapTiledJSON('tilemapJSON','area01.json');
-    }
-    create(){
-        const map=this.add.tilemap('tilemapJSON');
-        const tileset= map.addTilesetImage('tileset', 'tilesetImage');
+class Overworld extends Phaser.Scene {
+  constructor() {
+    super('Overworld');
+  }
 
-        //add back
-        const bgLayer=map.createLayer('Background',tileset,0,0);
-        const terrainLayer=map.createLayer('Terrain',tileset,0,0);
-        const treeLayer=map.createLayer('Trees',tileset,0,0).setDepth(10);
+  preload() {
+    this.load.tilemapTiledJSON('map', 'assets/tilemap.json');
+    this.load.image('background', 'assets/background.png');
+    this.load.image('tiles', 'assets/tiles.png');
+    this.load.spritesheet('player', 'assets/player.png', { frameWidth: 190, frameHeight: 170 });
+  }
 
-        //add sprite
-        this.slime=this.physics.add.sprite(32,32,'slime',0);
-        this.anims.create({
-            key:'jiggle',
-            frameRate:8,
-            repeat:-1,
-            frames: this.anims.generateFrameNumbers('slime',{
-                start:0,
-                end:1
-            })
-        });
-        this.slime.play('jiggle');
-        this.slime.body.setCollideWorldBounds(true)
-        terrainLayer.setCollisionByProperty({collides:true});
-        treeLayer.setCollisionByProperty({collides:true});
-        this.physics.add.collider(this.slime,terrainLayer);
-        this.physics.add.collider(this.slime,treeLayer);
-        //cameras
-        this.cameras.main.setBounds(0,0, map.widthInPixels,map.heightInPixels);
-        this.cameras.main.startFollow(this.slime,true,0.25,0.25);
-        this.physics.world.bounds.setTo(0,0,map.widthInPixels,map.heightInPixels);
-        this.cursors=this.input.keyboard.createCursorKeys();
+  create() {
+    const backgroundImage = this.add.image(0, 0,'background').setOrigin(0, 0);
+    const map = this.make.tilemap({ key: 'map' });
+    const tileset = map.addTilesetImage('spiritedaway', 'tiles');
+    const groundLayer = map.createStaticLayer('Ground', tileset, 0, 0);
+    groundLayer.setCollisionByExclusion([-1]);
 
+    this.player = this.physics.add.sprite(150, 130, 'player');
+    this.player.setBounce(0.2);
+    this.player.setCollideWorldBounds(true);
+
+    this.physics.add.collider(this.player, groundLayer);
+
+    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    this.cameras.main.startFollow(this.player);
+    this.cameras.main.setZoom(2);
+
+    this.anims.create({
+      key: 'left',
+      frames: this.anims.generateFrameNumbers('player', { start: 0, end: 2 }),
+      frameRate: 5,
+      repeat: -1
+    });
+    this.anims.create({
+      key: 'right',
+      frames: this.anims.generateFrameNumbers('player', { start: 3, end: 5 }),
+      frameRate: 10,
+      repeat: -1
+    });
+
+    this.cursors = this.input.keyboard.createCursorKeys();
+  }
+
+  update() {
+    if (this.cursors.left.isDown) {
+      this.player.setVelocityX(-160);
+      this.player.anims.play('left', true);
+    } else if (this.cursors.right.isDown) {
+      this.player.setVelocityX(160);
+      this.player.anims.play('right', true);
+    } 
+    if (this.cursors.up.isDown && this.player.body.onFloor()) {
+      this.player.setVelocityY(-330);
     }
-    update(){
-        this.direction=new Phaser.Math.Vector2(0);
-        if(this.cursors.left.isDown){
-            this.direction.x=-1;
-        }
-        else if(this.cursors.right.isDown){
-            this.direction.x=1;
-        }
-        if(this.cursors.up.isDown){
-            this.direction.y=-1;
-        }
-        else if(this.cursors.down.isDown){
-            this.direction.y=1;
-        }
-        this.direction.normalize();
-        this.slime.setVelocity(this.VEL*this.direction.x,this.VEL*this.direction.y);
-    }
+  }
 }
+
